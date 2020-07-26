@@ -126,12 +126,12 @@ Directory Hierarchy:
   - 74xx_7xx	Files specific to Freescale MPC74xx and 7xx CPUs
   - arm720t	Files specific to ARM 720 CPUs
   - arm920t	Files specific to ARM 920 CPUs
-    - at91rm9200 Files specific to Atmel AT91RM9200 CPU
     - imx	Files specific to Freescale MC9328 i.MX CPUs
     - s3c24x0	Files specific to Samsung S3C24X0 CPUs
   - arm925t	Files specific to ARM 925 CPUs
   - arm926ejs	Files specific to ARM 926 CPUs
   - arm1136	Files specific to ARM 1136 CPUs
+  - at91rm9200	Files specific to Atmel AT91RM9200 CPUs
   - i386	Files specific to i386 CPUs
   - ixp		Files specific to Intel XScale IXP CPUs
   - mcf52x2	Files specific to Freescale ColdFire MCF52x2 CPUs
@@ -145,7 +145,7 @@ Directory Hierarchy:
   - mpc85xx	Files specific to Freescale MPC85xx CPUs
   - nios	Files specific to Altera NIOS CPUs
   - nios2	Files specific to Altera Nios-II CPUs
-  - ppc4xx	Files specific to AMCC PowerPC 4xx CPUs
+  - ppc4xx	Files specific to IBM PowerPC 4xx CPUs
   - pxa		Files specific to Intel XScale PXA CPUs
   - s3c44b0	Files specific to Samsung S3C44B0 CPUs
   - sa1100	Files specific to Intel StrongARM SA1100 CPUs
@@ -261,53 +261,51 @@ The following options need to be configured:
 		PowerPC based boards:
 		---------------------
 
-		CONFIG_ADCIOP		CONFIG_GEN860T		CONFIG_PCIPPC2
-		CONFIG_ADS860		CONFIG_GENIETV		CONFIG_PCIPPC6
-		CONFIG_AMX860		CONFIG_GTH		CONFIG_pcu_e
-		CONFIG_AP1000		CONFIG_gw8260		CONFIG_PIP405
-		CONFIG_AR405		CONFIG_hermes		CONFIG_PM826
-		CONFIG_BAB7xx		CONFIG_hymod		CONFIG_ppmc8260
-		CONFIG_c2mon		CONFIG_IAD210		CONFIG_QS823
-		CONFIG_CANBT		CONFIG_ICU862		CONFIG_QS850
-		CONFIG_CCM		CONFIG_IP860		CONFIG_QS860T
-		CONFIG_CMI		CONFIG_IPHASE4539	CONFIG_RBC823
-		CONFIG_cogent_mpc8260	CONFIG_IVML24		CONFIG_RPXClassic
-		CONFIG_cogent_mpc8xx	CONFIG_IVML24_128	CONFIG_RPXlite
-		CONFIG_CPCI405		CONFIG_IVML24_256	CONFIG_RPXsuper
-		CONFIG_CPCI4052		CONFIG_IVMS8		CONFIG_rsdproto
-		CONFIG_CPCIISER4	CONFIG_IVMS8_128	CONFIG_sacsng
-		CONFIG_CPU86		CONFIG_IVMS8_256	CONFIG_Sandpoint8240
-		CONFIG_CRAYL1		CONFIG_JSE		CONFIG_Sandpoint8245
-		CONFIG_CSB272		CONFIG_LANTEC		CONFIG_sbc8260
-		CONFIG_CU824		CONFIG_lwmon		CONFIG_sbc8560
-		CONFIG_DASA_SIM		CONFIG_MBX		CONFIG_SM850
-		CONFIG_DB64360		CONFIG_MBX860T		CONFIG_SPD823TS
-		CONFIG_DB64460		CONFIG_MHPC		CONFIG_STXGP3
-		CONFIG_DU405		CONFIG_MIP405		CONFIG_SXNI855T
-		CONFIG_DUET_ADS		CONFIG_MOUSSE		CONFIG_TQM823L
-		CONFIG_EBONY		CONFIG_MPC8260ADS	CONFIG_TQM8260
-		CONFIG_ELPPC		CONFIG_MPC8540ADS	CONFIG_TQM850L
-		CONFIG_ELPT860		CONFIG_MPC8540EVAL	CONFIG_TQM855L
-		CONFIG_ep8260		CONFIG_MPC8560ADS	CONFIG_TQM860L
-		CONFIG_ERIC		CONFIG_MUSENKI		CONFIG_TTTech
-		CONFIG_ESTEEM192E	CONFIG_MVS1		CONFIG_UTX8245
-		CONFIG_ETX094		CONFIG_NETPHONE		CONFIG_V37
-		CONFIG_EVB64260		CONFIG_NETTA		CONFIG_W7OLMC
-		CONFIG_FADS823		CONFIG_NETVIA		CONFIG_W7OLMG
-		CONFIG_FADS850SAR	CONFIG_NX823		CONFIG_WALNUT
-		CONFIG_FADS860T		CONFIG_OCRTC		CONFIG_ZPC1900
-		CONFIG_FLAGADM		CONFIG_ORSG		CONFIG_ZUMA
-		CONFIG_FPS850L		CONFIG_OXC
-		CONFIG_FPS860L		CONFIG_PCI405
+		CONFIG_ADCIOP		CONFIG_GEN860T		CONFIG_PCI405
+		CONFIG_ADS860		CONFIG_GENIETV		CONFIG_PCIPPC2
+		CONFIG_AMX860		CONFIG_GTH		CONFIG_PCIPPC6
+		CONFIG_AR405		CONFIG_gw8260		CONFIG_pcu_e
+		CONFIG_BAB7xx		CONFIG_hermes		CONFIG_PIP405
+		CONFIG_c2mon		CONFIG_hymod		CONFIG_PM826
+		CONFIG_CANBT		CONFIG_IAD210		CONFIG_ppmc8260
+		CONFIG_CCM		CONFIG_ICU862		CONFIG_QS823
+		CONFIG_CMI		CONFIG_IP860		CONFIG_QS850
+		CONFIG_cogent_mpc8260	CONFIG_IPHASE4539	CONFIG_QS860T
+		CONFIG_cogent_mpc8xx	CONFIG_IVML24		CONFIG_RBC823
+		CONFIG_CPCI405		CONFIG_IVML24_128	CONFIG_RPXClassic
+		CONFIG_CPCI4052		CONFIG_IVML24_256	CONFIG_RPXlite
+		CONFIG_CPCIISER4	CONFIG_IVMS8		CONFIG_RPXsuper
+		CONFIG_CPU86		CONFIG_IVMS8_128	CONFIG_rsdproto
+		CONFIG_CRAYL1		CONFIG_IVMS8_256	CONFIG_sacsng
+		CONFIG_CSB272		CONFIG_JSE		CONFIG_Sandpoint8240
+		CONFIG_CU824		CONFIG_LANTEC		CONFIG_Sandpoint8245
+		CONFIG_DASA_SIM		CONFIG_lwmon		CONFIG_sbc8260
+		CONFIG_DB64360		CONFIG_MBX		CONFIG_sbc8560
+		CONFIG_DB64460		CONFIG_MBX860T		CONFIG_SM850
+		CONFIG_DU405		CONFIG_MHPC		CONFIG_SPD823TS
+		CONFIG_DUET_ADS		CONFIG_MIP405		CONFIG_STXGP3
+		CONFIG_EBONY		CONFIG_MOUSSE		CONFIG_SXNI855T
+		CONFIG_ELPPC		CONFIG_MPC8260ADS	CONFIG_TQM823L
+		CONFIG_ELPT860		CONFIG_MPC8540ADS	CONFIG_TQM8260
+		CONFIG_ep8260		CONFIG_MPC8560ADS	CONFIG_TQM850L
+		CONFIG_ERIC		CONFIG_MUSENKI		CONFIG_TQM855L
+		CONFIG_ESTEEM192E	CONFIG_MVS1		CONFIG_TQM860L
+		CONFIG_ETX094		CONFIG_NETPHONE		CONFIG_TTTech
+		CONFIG_EVB64260		CONFIG_NETTA		CONFIG_UTX8245
+		CONFIG_FADS823		CONFIG_NETVIA		CONFIG_V37
+		CONFIG_FADS850SAR	CONFIG_NX823		CONFIG_W7OLMC
+		CONFIG_FADS860T		CONFIG_OCRTC		CONFIG_W7OLMG
+		CONFIG_FLAGADM		CONFIG_ORSG		CONFIG_WALNUT405
+		CONFIG_FPS850L		CONFIG_OXC		CONFIG_ZPC1900
+		CONFIG_FPS860L					CONFIG_ZUMA
 
 		ARM based boards:
 		-----------------
 
-		CONFIG_ARMADILLO,	CONFIG_AT91RM9200DK,	CONFIG_CERF250,
-		CONFIG_CSB637,		CONFIG_DNP1110, 	CONFIG_EP7312,
-		CONFIG_H2_OMAP1610,	CONFIG_HHP_CRADLE,	CONFIG_IMPA7,
-		CONFIG_INNOVATOROMAP1510, CONFIG_INNOVATOROMAP1610, CONFIG_KB9202,
-		CONFIG_LART,		CONFIG_LPD7A400,	CONFIG_LUBBOCK,
+		CONFIG_AT91RM9200DK,	CONFIG_CERF250,		CONFIG_DNP1110,
+		CONFIG_EP7312,		CONFIG_H2_OMAP1610,	CONFIG_HHP_CRADLE,
+		CONFIG_IMPA7,		CONFIG_INNOVATOROMAP1510, CONFIG_INNOVATOROMAP1610,
+		CONFIG_LART,		CONFIG_LPD7A400		CONFIG_LUBBOCK,
 		CONFIG_OSK_OMAP5912,	CONFIG_OMAP2420H4,	CONFIG_SHANNON,
 		CONFIG_P2_OMAP730,	CONFIG_SMDK2400,	CONFIG_SMDK2410,
 		CONFIG_TRAB,		CONFIG_VCMA9
@@ -398,20 +396,6 @@ The following options need to be configured:
 		When transfering memsize parameter to linux, some versions
 		expect it to be in bytes, others in MB.
 		Define CONFIG_MEMSIZE_IN_BYTES to make it in bytes.
-
-		CONFIG_OF_FLAT_TREE
-
-		New kernel versions are expecting firmware settings to be
-		passed using flat open firmware trees.
-		The environment variable "disable_of", when set, disables this
-		functionality.
-
-		CONFIG_OF_FLAT_TREE_MAX_SIZE
-
-		The maximum size of the constructed OF tree.
-
-		OF_CPU - The proper name of the cpus node.
-		OF_TBCLK - The timebase frequency.
 
 - Serial Ports:
 		CFG_PL010_SERIAL
@@ -513,7 +497,7 @@ The following options need to be configured:
 - Console UART Number:
 		CONFIG_UART1_CONSOLE
 
-		AMCC PPC4xx only.
+		IBM PPC4xx only.
 		If defined internal UART1 (and not UART0) is used
 		as default U-Boot console.
 
@@ -643,7 +627,6 @@ The following options need to be configured:
 		CFG_CMD_SAVES	* save S record dump
 		CFG_CMD_SCSI	* SCSI Support
 		CFG_CMD_SDRAM	* print SDRAM configuration information
-				  (requires CFG_CMD_I2C)
 		CFG_CMD_SETGETDCR Support for DCR Register access (4xx only)
 		CFG_CMD_SPI	* SPI serial bus support
 		CFG_CMD_USB	* USB support
@@ -975,12 +958,6 @@ The following options need to be configured:
 		console is redirected to the "nulldev", too. This
 		allows for a "silent" boot where a splash screen is
 		loaded very quickly after power-on.
-
-- Gzip compressed BMP image support: CONFIG_VIDEO_BMP_GZIP
-
-		If this option is set, additionally to standard BMP
-		images, gzipped BMP images can be displayed via the
-		splashscreen support or the bmp command.
 
 - Compression support:
 		CONFIG_BZIP2
@@ -1502,26 +1479,6 @@ The following options need to be configured:
 
 		When SystemACE support is added, the "ace" device type
 		becomes available to the fat commands, i.e. fatls.
-
-- TFTP Fixed UDP Port:
-		CONFIG_TFTP_PORT
-
-		If this is defined, the environment variable tftpsrcp
-		is used to supply the TFTP UDP source port value.
-		If tftpsrcp isn't defined, the normal pseudo-random port
-		number generator is used.
-
-		Also, the environment variable tftpdstp is used to supply
-		the TFTP UDP destination port value.  If tftpdstp isn't
-		defined, the normal port 69 is used.
-
-		The purpose for tftpsrcp is to allow a TFTP server to
-		blindly start the TFTP transfer using the pre-configured
-		target IP address and UDP port. This has the effect of
-		"punching through" the (Windows XP) firewall, allowing
-		the remainder of the TFTP transfer to proceed normally.
-		A better solution is to properly configure the firewall,
-		but sometimes that is not allowed.
 
 - Show boot progress:
 		CONFIG_SHOW_BOOT_PROGRESS
@@ -2171,19 +2128,6 @@ Low Level (hardware related) configuration options:
 		This only takes effect if the memory commands are activated
 		globally (CFG_CMD_MEM).
 
-- CONFIG_SKIP_LOWLEVEL_INIT
-- CONFIG_SKIP_RELOCATE_UBOOT
-
-		[ARM only] If these variables are defined, then
-		certain low level initializations (like setting up
-		the memory controller) are omitted and/or U-Boot does
-		not relocate itself into RAM.
-		Normally these variables MUST NOT be defined. The
-		only exception is when U-Boot is loaded (to RAM) by
-		some other boot loader or by a debugger which
-		performs these intializations itself.
-
-
 Building the Software:
 ======================
 
@@ -2228,14 +2172,14 @@ configurations; the following names are supported:
 	DUET_ADS_config		MBX_config		sbc8560_66_config
 	EBONY_config		MPC8260ADS_config	SM850_config
 	ELPT860_config		MPC8540ADS_config	SPD823TS_config
-	ESTEEM192E_config	MPC8540EVAL_config	stxgp3_config
-	ETX094_config		MPC8560ADS_config	SXNI855T_config
-	FADS823_config		NETVIA_config		TQM823L_config
-	FADS850SAR_config	omap1510inn_config	TQM850L_config
-	FADS860T_config		omap1610h2_config	TQM855L_config
-	FPS850L_config		omap1610inn_config	TQM860L_config
-				omap5912osk_config	walnut_config
-				omap2420h4_config	Yukon8220_config
+	ESTEEM192E_config	MPC8560ADS_config	stxgp3_config
+	ETX094_config		NETVIA_config		SXNI855T_config
+	FADS823_config		omap1510inn_config	TQM823L_config
+	FADS850SAR_config	omap1610h2_config	TQM850L_config
+	FADS860T_config		omap1610inn_config	TQM855L_config
+	FPS850L_config		omap5912osk_config	TQM860L_config
+				omap2420h4_config	WALNUT405_config
+							Yukon8220_config
 							ZPC1900_config
 
 Note: for some board special configuration names may exist; check if
@@ -2487,12 +2431,6 @@ Some configuration options can be set using Environment Variables:
 		  are tried once without success.
 		  Useful on scripts which control the retry operation
 		  themselves.
-
-  tftpsrcport	- If this is set, the value is used for TFTP's
-		  UDP source port.
-
-  tftpdstport	- If this is set, the value is used for TFTP's UDP
-		  destination port instead of the Well Know Port 69.
 
    vlan		- When set to a value < 4095 the traffic over
 		  ethernet is encapsulated/received over 802.1q
@@ -3129,7 +3067,8 @@ Booting assumes that (the first part of) the image booted is a
 stage-2 loader which in turn loads and then invokes the kernel
 proper. Loader sources will eventually appear in the NetBSD source
 tree (probably in sys/arc/mpc8xx/stand/u-boot_stage2/); in the
-meantime, see ftp://ftp.denx.de/pub/u-boot/ppcboot_stage2.tar.gz
+meantime, send mail to bruno@exet-ag.de and/or wd@denx.de for
+details.
 
 
 Implementation Internals:
@@ -3183,7 +3122,7 @@ locked as (mis-) used as memory, etc.
 	CFG_INIT_RAM_ADDR should be somewhere that won't interfere
 	with your processor/board/system design. The default value
 	you will find in any recent u-boot distribution in
-	walnut.h should work for you. I'd set it to a value larger
+	Walnut405.h should work for you. I'd set it to a value larger
 	than your SDRAM module. If you have a 64MB SDRAM module, set
 	it above 400_0000. Just make sure your board has no resources
 	that are supposed to respond to that address! That code in
@@ -3429,7 +3368,6 @@ Since the number of patches for U-Boot is growing, we need to
 establish some rules. Submissions which do not conform to these rules
 may be rejected, even when they contain important and valuable stuff.
 
-Patches shall be sent to the u-boot-users mailing list.
 
 When you send a patch, please include the following information with
 it:
@@ -3487,6 +3425,3 @@ Notes:
   (using #ifdef), and the resulting code with the new feature
   disabled must not need more memory than the old code without your
   modification.
-
-* Remember that there is a size limit of 40 kB per message on the
-  u-boot-users mailing list. Compression may help.

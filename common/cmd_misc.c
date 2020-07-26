@@ -28,10 +28,10 @@
 #include <command.h>
 
 #if (CONFIG_COMMANDS & CFG_CMD_MISC)
+#ifdef RT2880_U_BOOT_CMD_OPEN
 
 int do_sleep (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
-	ulong start = get_timer(0);
 	ulong delay;
 
 	if (argc != 2) {
@@ -39,18 +39,21 @@ int do_sleep (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return 1;
 	}
 
-	delay = simple_strtoul(argv[1], NULL, 10) * CFG_HZ;
+	delay = simple_strtoul(argv[1], NULL, 10);
 
-	while (get_timer(start) < delay) {
-		if (ctrlc ()) {
-			return (-1);
+	while (delay) {
+		int i;
+		for (i=0; i<1000; ++i) {
+			if (ctrlc ()) {
+				return (-1);
+			}
+			udelay (1000);
 		}
-		udelay (100);
+		--delay;
 	}
-
 	return 0;
 }
-
+#endif
 /* Implemented in $(CPU)/interrupts.c */
 #if (CONFIG_COMMANDS & CFG_CMD_IRQ)
 int do_irqinfo (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
@@ -61,6 +64,7 @@ U_BOOT_CMD(
 	NULL
 );
 #endif  /* CONFIG_COMMANDS & CFG_CMD_IRQ */
+#ifdef RT2880_U_BOOT_CMD_OPEN
 
 U_BOOT_CMD(
 	sleep ,    2,    2,     do_sleep,
@@ -68,5 +72,5 @@ U_BOOT_CMD(
 	"N\n"
 	"    - delay execution for N seconds (N is _decimal_ !!!)\n"
 );
-
+#endif
 #endif	/* CFG_CMD_MISC */

@@ -83,10 +83,6 @@ typedef volatile unsigned char	vu_char;
 #include <mpc85xx.h>
 #include <asm/immap_85xx.h>
 #endif
-#ifdef CONFIG_MPC83XX
-#include <mpc83xx.h>
-#include <asm/immap_83xx.h>
-#endif
 #ifdef	CONFIG_4xx
 #include <ppc4xx.h>
 #endif
@@ -108,6 +104,29 @@ typedef volatile unsigned char	vu_char;
 #define debug(fmt,args...)
 #define debugX(level,fmt,args...)
 #endif	/* DEBUG */
+
+#ifndef BUG
+#define BUG() do { \
+        printf("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __FUNCTION__); \
+        panic("BUG!"); \
+} while (0)
+#define BUG_ON(condition) do { if (unlikely((condition)!=0)) BUG(); } while(0)
+#endif /* BUG */
+
+#define PAD_COUNT(s, pad) (((s) - 1) / (pad) + 1)
+#define PAD_SIZE(s, pad) (PAD_COUNT(s, pad) * pad)
+#define ALLOC_ALIGN_BUFFER_PAD(type, name, size, align, pad)            \
+        char __##name[ROUND(PAD_SIZE((size) * sizeof(type), pad), align)  \
+                      + (align - 1)];                                   \
+                                                                        \
+        type *name = (type *) ALIGN((uintptr_t)__##name, align)
+#define ALLOC_ALIGN_BUFFER(type, name, size, align)             \
+        ALLOC_ALIGN_BUFFER_PAD(type, name, size, align, 1)
+#define ALLOC_CACHE_ALIGN_BUFFER_PAD(type, name, size, pad)             \
+        ALLOC_ALIGN_BUFFER_PAD(type, name, size, ARCH_DMA_MINALIGN, pad)
+#define ALLOC_CACHE_ALIGN_BUFFER(type, name, size)                      \
+        ALLOC_ALIGN_BUFFER(type, name, size, ARCH_DMA_MINALIGN)
+
 
 typedef void (interrupt_handler_t)(void *);
 
@@ -157,6 +176,31 @@ typedef void (interrupt_handler_t)(void *);
 	({ typeof (X) __x = (X), __y = (Y);	\
 		(__x > __y) ? __x : __y; })
 
+#define NUM_RX_DESC 24
+#define NUM_TX_DESC 24
+
+
+//   For loopback test
+
+typedef struct _BUFFER_ELEM_    BUFFER_ELEM;
+
+struct _BUFFER_ELEM_
+{
+	int tx_idx;
+    unsigned char *pbuf;
+    BUFFER_ELEM       *next;
+    
+    
+};
+
+typedef struct _VALID_BUFFER_STRUCT_    VALID_BUFFER_STRUCT;
+
+struct _VALID_BUFFER_STRUCT_
+{
+    BUFFER_ELEM    *head;
+    BUFFER_ELEM    *tail;	
+};
+
 
 /*
  * Function Prototypes
@@ -180,13 +224,13 @@ void	print_size (ulong, const char *);
 /* common/main.c */
 void	main_loop	(void);
 int	run_command	(const char *cmd, int flag);
-int	readline	(const char *const prompt);
+int	readline	(const char *const prompt, int show_buf);
 void	init_cmd_timeout(void);
 void	reset_cmd_timeout(void);
 
 /* lib_$(ARCH)/board.c */
-void	board_init_f  (ulong);
-void	board_init_r  (gd_t *, ulong);
+__attribute__((nomips16)) void	board_init_f  (ulong);
+__attribute__((nomips16)) void	board_init_r  (gd_t *, ulong);
 int	checkboard    (void);
 int	checkflash    (void);
 int	checkdram     (void);
@@ -208,8 +252,8 @@ extern ulong load_addr;		/* Default Load Address */
 /* common/cmd_nvedit.c */
 int	env_init     (void);
 void	env_relocate (void);
-char	*getenv	     (char *);
-int	getenv_r     (char *name, char *buf, unsigned len);
+char	*getenv	     (uchar *);
+int	getenv_r     (uchar *name, uchar *buf, unsigned len);
 int	saveenv	     (void);
 #ifdef CONFIG_PPC		/* ARM version to be fixed! */
 void inline setenv   (char *, char *);
@@ -253,7 +297,7 @@ int	misc_init_r   (void);
 void	jumptable_init(void);
 
 /* common/memsize.c */
-int	get_ram_size  (volatile long *, long);
+//int	get_ram_size  (volatile long *, long);
 
 /* $(BOARD)/$(BOARD).c */
 void	reset_phy     (void);
@@ -302,8 +346,7 @@ void	board_ether_init (void);
 #endif
 
 #if defined(CONFIG_RPXCLASSIC)	|| defined(CONFIG_MBX) || \
-    defined(CONFIG_IAD210)	|| defined(CONFIG_XPEDITE1K) || \
-    defined(CONFIG_METROBOX)    || defined(CONFIG_KAREF)
+    defined(CONFIG_IAD210)	|| defined(CONFIG_XPEDITE1K)
 void	board_get_enetaddr (uchar *addr);
 #endif
 
@@ -356,6 +399,8 @@ int	dcache_status (void);
 void	dcache_enable (void);
 void	dcache_disable(void);
 void	relocate_code (ulong, gd_t *, ulong);
+void 	mips_cache_reset(void);
+
 ulong	get_endaddr   (void);
 void	trap_init     (ulong);
 #if defined (CONFIG_4xx)	|| \
@@ -388,24 +433,15 @@ int	checkicache   (void);
 int	checkdcache   (void);
 void	upmconfig     (unsigned int, unsigned int *, unsigned int);
 ulong	get_tbclk     (void);
-void	reset_cpu     (ulong addr);
 
 /* $(CPU)/serial.c */
 int	serial_init   (void);
-void	serial_addr   (unsigned int);
 void	serial_setbrg (void);
 void	serial_putc   (const char);
-void	serial_putc_raw(const char);
 void	serial_puts   (const char *);
+void	serial_addr   (unsigned int);
 int	serial_getc   (void);
 int	serial_tstc   (void);
-
-void	_serial_setbrg (const int);
-void	_serial_putc   (const char, const int);
-void	_serial_putc_raw(const char, const int);
-void	_serial_puts   (const char *, const int);
-int	_serial_getc   (const int);
-int	_serial_tstc   (const int);
 
 /* $(CPU)/speed.c */
 int	get_clocks (void);
@@ -414,9 +450,8 @@ int	sdram_adjust_866 (void);
 int	adjust_sdram_tbs_8xx (void);
 #if defined(CONFIG_8260)
 int	prt_8260_clks (void);
-#elif defined(CONFIG_MPC83XX)
-int print_clock_conf(void);
-#elif defined(CONFIG_MPC5xxx)
+#endif
+#if defined(CONFIG_MPC5xxx)
 int	prt_mpc5xxx_clks (void);
 #endif
 #if defined(CONFIG_MPC8220)
@@ -483,7 +518,7 @@ void	external_interrupt (struct pt_regs *);
 void	irq_install_handler(int, interrupt_handler_t *, void *);
 void	irq_free_handler   (int);
 void	reset_timer	   (void);
-ulong	get_timer	   (ulong base);
+__attribute__((nomips16)) ulong	get_timer	   (ulong base);
 void	set_timer	   (ulong t);
 void	enable_interrupts  (void);
 int	disable_interrupts (void);
@@ -513,7 +548,7 @@ ulong	vfd_setmem (ulong);
 ulong	video_setmem (ulong);
 
 /* lib_$(ARCH)/cache.c */
-void	flush_cache   (unsigned long, unsigned long);
+__attribute__((nomips16)) void	flush_cache   (unsigned long, unsigned long);
 
 
 /* lib_$(ARCH)/ticks.S */
@@ -521,7 +556,7 @@ unsigned long long get_ticks(void);
 void	wait_ticks    (unsigned long);
 
 /* lib_$(ARCH)/time.c */
-void	udelay	      (unsigned long);
+__attribute__((nomips16)) void	udelay	      (unsigned long);
 ulong	usec2ticks    (unsigned long usec);
 ulong	ticks2usec    (unsigned long ticks);
 int	init_timebase (void);
@@ -592,9 +627,38 @@ int	pcmcia_init (void);
 void	show_boot_progress (int status);
 #endif
 
-#ifdef CONFIG_INIT_CRITICAL
-#error CONFIG_INIT_CRITICAL is depracted!
-#error Read section CONFIG_SKIP_LOWLEVEL_INIT in README.
+#if defined(CFG_ENV_IS_IN_NAND) /* Environment is in NAND Flash */
+#if defined(MTK_NAND)
+#include "../drivers/nand/mt6575_typedefs.h"
+#else
+#include "../drivers/ralink_nand.h"
 #endif
+#endif
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
+#define ROUND(a,b)		(((a) + (b) - 1) & ~((b) - 1))
+#define DIV_ROUND(n,d)		(((n) + ((d)/2)) / (d))
+#define DIV_ROUND_UP(n,d)	(((n) + (d) - 1) / (d))
+#define roundup(x, y)		((((x) + ((y) - 1)) / (y)) * (y))
+
+/*
+ * Divide positive or negative dividend by positive divisor and round
+ * to closest integer. Result is undefined for negative divisors and
+ * for negative dividends if the divisor variable type is unsigned.
+ */
+#define DIV_ROUND_CLOSEST(x, divisor)(			\
+{							\
+	typeof(x) __x = x;				\
+	typeof(divisor) __d = divisor;			\
+	(((typeof(x))-1) > 0 ||				\
+         ((typeof(divisor))-1) > 0 || (__x) > 0) ?	\
+		(((__x) + ((__d) / 2)) / (__d)) :	\
+		(((__x) - ((__d) / 2)) / (__d));	\
+}							\
+)
+
+#define ALIGN(x,a)		__ALIGN_MASK((x),(typeof(x))(a)-1)
+#define __ALIGN_MASK(x,mask)	(((x)+(mask))&~(mask))
 
 #endif	/* __COMMON_H_ */

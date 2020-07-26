@@ -25,7 +25,7 @@
 #include <command.h>
 #include <net.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_NET) && defined(CONFIG_NET_MULTI)
+#if (CONFIG_COMMANDS & CFG_CMD_NET)
 
 #ifdef CFG_GT_6426x
 extern int gt6426x_eth_initialize(bd_t *bis);
@@ -47,37 +47,32 @@ extern int ns8382x_initialize(bd_t*);
 extern int pcnet_initialize(bd_t*);
 extern int plb2800_eth_initialize(bd_t*);
 extern int ppc_4xx_eth_initialize(bd_t *);
+extern int ppc_440x_eth_initialize(bd_t *);
 extern int rtl8139_initialize(bd_t*);
 extern int rtl8169_initialize(bd_t*);
 extern int scc_initialize(bd_t*);
 extern int skge_initialize(bd_t*);
-extern int tsec_initialize(bd_t*, int, char *);
+extern int tsec_initialize(bd_t*, int);
+extern int rt2880_eth_initialize(bd_t *bis);
 
 static struct eth_device *eth_devices, *eth_current;
 
+void eth_parse_enetaddr(const char *addr, uchar *enetaddr)
+{
+	char *end;
+	int i;
+
+	for (i = 0; i < 6; ++i) {
+		enetaddr[i] = addr ? simple_strtoul(addr, &end, 16) : 0;
+		if (addr)
+			addr = (*end) ? end + 1 : end;
+	}
+}
+
+#ifdef CONFIG_NET_MULTI
 struct eth_device *eth_get_dev(void)
 {
 	return eth_current;
-}
-
-struct eth_device *eth_get_dev_by_name(char *devname)
-{
-	struct eth_device *dev, *target_dev;
-
-	if (!eth_devices)
-		return NULL;
-
-	dev = eth_devices;
-	target_dev = NULL;
-	do {
-		if (strcmp(devname, dev->name) == 0) {
-			target_dev = dev;
-			break;
-		}
-		dev = dev->next;
-	} while (dev != eth_devices);
-
-	return target_dev;
 }
 
 int eth_get_dev_index (void)
@@ -101,6 +96,7 @@ int eth_get_dev_index (void)
 
 	return (0);
 }
+#endif
 
 int eth_register(struct eth_device* dev)
 {
@@ -129,9 +125,8 @@ int eth_register(struct eth_device* dev)
 
 int eth_initialize(bd_t *bis)
 {
-	char enetvar[32], env_enetaddr[6];
-	int i, eth_number = 0;
-	char *tmp, *end;
+	unsigned char rt2880_gmac1_mac[6];
+	int eth_number = 0, regValue=0;
 
 	eth_devices = NULL;
 	eth_current = NULL;
@@ -145,13 +140,18 @@ int eth_initialize(bd_t *bis)
 #ifdef CONFIG_DB64460
 	mv6446x_eth_initialize(bis);
 #endif
-#if defined(CONFIG_4xx) && !defined(CONFIG_IOP480) && !defined(CONFIG_AP1000)
+#if defined(CONFIG_405GP) || defined(CONFIG_405EP) || \
+  ( defined(CONFIG_440) && !defined(CONFIG_NET_MULTI) )
 	ppc_4xx_eth_initialize(bis);
+#endif
+#if defined(CONFIG_440) && defined(CONFIG_NET_MULTI)
+	ppc_440x_eth_initialize(bis);
 #endif
 #ifdef CONFIG_INCA_IP_SWITCH
 	inca_switch_initialize(bis);
 #endif
 #ifdef CONFIG_PLB2800_ETHER
+
 	plb2800_eth_initialize(bis);
 #endif
 #ifdef SCC_ENET
@@ -163,35 +163,20 @@ int eth_initialize(bd_t *bis)
 #if defined(CONFIG_MPC5xxx_FEC)
 	mpc5xxx_fec_initialize(bis);
 #endif
-#if defined(CONFIG_MPC8220_FEC)
+#if defined(CONFIG_MPC8220)
 	mpc8220_fec_initialize(bis);
 #endif
 #if defined(CONFIG_SK98)
 	skge_initialize(bis);
 #endif
 #if defined(CONFIG_MPC85XX_TSEC1)
-	tsec_initialize(bis, 0, CONFIG_MPC85XX_TSEC1_NAME);
-#elif defined(CONFIG_MPC83XX_TSEC1)
-	tsec_initialize(bis, 0, CONFIG_MPC83XX_TSEC1_NAME);
+	tsec_initialize(bis, 0);
 #endif
 #if defined(CONFIG_MPC85XX_TSEC2)
-	tsec_initialize(bis, 1, CONFIG_MPC85XX_TSEC2_NAME);
-#elif defined(CONFIG_MPC83XX_TSEC2)
-	tsec_initialize(bis, 1, CONFIG_MPC83XX_TSEC2_NAME);
+	tsec_initialize(bis, 1);
 #endif
 #if defined(CONFIG_MPC85XX_FEC)
-	tsec_initialize(bis, 2, CONFIG_MPC85XX_FEC_NAME);
-#else
-#    if defined(CONFIG_MPC85XX_TSEC3)
-	tsec_initialize(bis, 2, CONFIG_MPC85XX_TSEC3_NAME);
-#    elif defined(CONFIG_MPC83XX_TSEC3)
-	tsec_initialize(bis, 2, CONFIG_MPC83XX_TSEC3_NAME);
-#    endif
-#    if defined(CONFIG_MPC85XX_TSEC4)
-	tsec_initialize(bis, 3, CONFIG_MPC85XX_TSEC4_NAME);
-#    elif defined(CONFIG_MPC83XX_TSEC4)
-	tsec_initialize(bis, 3, CONFIG_MPC83XX_TSEC4_NAME);
-#    endif
+	tsec_initialize(bis, 2);
 #endif
 #if defined(CONFIG_AU1X00)
 	au1x00_enet_initialize(bis);
@@ -227,52 +212,59 @@ int eth_initialize(bd_t *bis)
 	rtl8169_initialize(bis);
 #endif
 
+#if defined(CONFIG_RT2880_ETH)
+	rt2880_eth_initialize(bis);
+#endif
+
 	if (!eth_devices) {
 		puts ("No ethernet found.\n");
 	} else {
 		struct eth_device *dev = eth_devices;
 		char *ethprime = getenv ("ethprime");
+		unsigned char empty_mac[6]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+
 
 		do {
 			if (eth_number)
 				puts (", ");
-
-			printf("%s", dev->name);
 
 			if (ethprime && strcmp (dev->name, ethprime) == 0) {
 				eth_current = dev;
 				puts (" [PRIME]");
 			}
 
-			sprintf(enetvar, eth_number ? "eth%daddr" : "ethaddr", eth_number);
-			tmp = getenv (enetvar);
+#define GMAC0_OFFSET    0x28
+#define GDMA1_MAC_ADRL  0x2C
+#define GDMA1_MAC_ADRH  0x30
 
-			for (i=0; i<6; i++) {
-				env_enetaddr[i] = tmp ? simple_strtoul(tmp, &end, 16) : 0;
-				if (tmp)
-					tmp = (*end) ? end+1 : end;
-			}
+			//get Ethernet mac address from flash
+#if defined (CFG_ENV_IS_IN_NAND)
+			ranand_read(rt2880_gmac1_mac, 
+				CFG_FACTORY_ADDR - CFG_FLASH_BASE + GMAC0_OFFSET, 6);
+#elif defined (CFG_ENV_IS_IN_SPI)
+			raspi_read(rt2880_gmac1_mac, 
+				CFG_FACTORY_ADDR - CFG_FLASH_BASE + GMAC0_OFFSET, 6);
+#else //CFG_ENV_IS_IN_FLASH
+			memmove(rt2880_gmac1_mac, 
+				CFG_FACTORY_ADDR + GMAC0_OFFSET, 6);
+#endif
 
-			if (memcmp(env_enetaddr, "\0\0\0\0\0\0", 6)) {
-				if (memcmp(dev->enetaddr, "\0\0\0\0\0\0", 6) &&
-				    memcmp(dev->enetaddr, env_enetaddr, 6))
-				{
-					printf ("\nWarning: %s MAC addresses don't match:\n",
-						dev->name);
-					printf ("Address in SROM is         "
-					       "%02X:%02X:%02X:%02X:%02X:%02X\n",
-					       dev->enetaddr[0], dev->enetaddr[1],
-					       dev->enetaddr[2], dev->enetaddr[3],
-					       dev->enetaddr[4], dev->enetaddr[5]);
-					printf ("Address in environment is  "
-					       "%02X:%02X:%02X:%02X:%02X:%02X\n",
-					       env_enetaddr[0], env_enetaddr[1],
-					       env_enetaddr[2], env_enetaddr[3],
-					       env_enetaddr[4], env_enetaddr[5]);
-				}
+			//if flash is empty, use default mac address
+			if (memcmp(rt2880_gmac1_mac, empty_mac, 6) == 0)
+				eth_parse_enetaddr(CONFIG_ETHADDR, rt2880_gmac1_mac);
 
-				memcpy(dev->enetaddr, env_enetaddr, 6);
-			}
+			if (memcmp (rt2880_gmac1_mac, "\0\0\0\0\0\0", 6) == 0)
+				eth_parse_enetaddr(CONFIG_ETHADDR, rt2880_gmac1_mac);
+
+			memcpy(dev->enetaddr, rt2880_gmac1_mac, 6);
+
+			//set my mac to gdma register
+			regValue = (rt2880_gmac1_mac[0] << 8)|(rt2880_gmac1_mac[1]);
+			*(volatile u_long *)(dev->iobase + GDMA1_MAC_ADRH)= regValue;
+
+			regValue = (rt2880_gmac1_mac[2] << 24) | (rt2880_gmac1_mac[3] <<16) | 
+			           (rt2880_gmac1_mac[4] << 8) | rt2880_gmac1_mac[5];
+			*(volatile u_long *)(dev->iobase + GDMA1_MAC_ADRL)= regValue;
 
 			eth_number++;
 			dev = dev->next;
@@ -287,13 +279,14 @@ int eth_initialize(bd_t *bis)
 		} else
 			setenv("ethact", NULL);
 #endif
-
-		putc ('\n');
+		//printf("\n eth_current->name = %s\n",eth_current->name);
+		printf("\n");
 	}
 
 	return eth_number;
 }
 
+#ifdef CONFIG_NET_MULTI
 void eth_set_enetaddr(int num, char *addr) {
 	struct eth_device *dev;
 	unsigned char enetaddr[6];
@@ -322,13 +315,13 @@ void eth_set_enetaddr(int num, char *addr) {
 	debug ( "Setting new HW address on %s\n"
 		"New Address is             %02X:%02X:%02X:%02X:%02X:%02X\n",
 		dev->name,
-		enetaddr[0], enetaddr[1],
-		enetaddr[2], enetaddr[3],
-		enetaddr[4], enetaddr[5]);
+		dev->enetaddr[0], dev->enetaddr[1],
+		dev->enetaddr[2], dev->enetaddr[3],
+		dev->enetaddr[4], dev->enetaddr[5]);
 
 	memcpy(dev->enetaddr, enetaddr, 6);
 }
-
+#endif
 int eth_init(bd_t *bis)
 {
 	struct eth_device* old_current;
@@ -342,10 +335,12 @@ int eth_init(bd_t *bis)
 
 		if (eth_current->init(eth_current, bis)) {
 			eth_current->state = ETH_STATE_ACTIVE;
-
+			printf("\n ETH_STATE_ACTIVE!! \n");
 			return 1;
 		}
-		debug  ("FAIL\n");
+		printf  ("FAIL\n");
+        //kaiker
+		return (-1);
 
 		eth_try_another(0);
 	} while (old_current != eth_current);
@@ -399,11 +394,11 @@ void eth_try_another(int first_restart)
 		if (act == NULL || strcmp(act, eth_current->name) != 0)
 			setenv("ethact", eth_current->name);
 	}
-#endif
 
 	if (first_failed == eth_current) {
 		NetRestartWrap = 1;
 	}
+#endif
 }
 
 #ifdef CONFIG_NET_MULTI
@@ -429,32 +424,10 @@ void eth_set_current(void)
 }
 #endif
 
+#if defined(CONFIG_NET_MULTI)
 char *eth_get_name (void)
 {
 	return (eth_current ? eth_current->name : "unknown");
 }
-#elif (CONFIG_COMMANDS & CFG_CMD_NET) && !defined(CONFIG_NET_MULTI)
-
-extern int at91rm9200_miiphy_initialize(bd_t *bis);
-extern int emac4xx_miiphy_initialize(bd_t *bis);
-extern int mcf52x2_miiphy_initialize(bd_t *bis);
-extern int ns7520_miiphy_initialize(bd_t *bis);
-
-int eth_initialize(bd_t *bis)
-{
-#if defined(CONFIG_AT91RM9200)
-	at91rm9200_miiphy_initialize(bis);
 #endif
-#if defined(CONFIG_4xx) && !defined(CONFIG_IOP480) \
-	&& !defined(CONFIG_AP1000) && !defined(CONFIG_405)
-	emac4xx_miiphy_initialize(bis);
-#endif
-#if defined(CONFIG_MCF52x2)
-	mcf52x2_miiphy_initialize(bis);
-#endif
-#if defined(CONFIG_NETARM)
-	ns7520_miiphy_initialize(bis);
-#endif
-	return 0;
-}
 #endif

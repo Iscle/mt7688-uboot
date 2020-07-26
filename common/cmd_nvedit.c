@@ -46,6 +46,8 @@
 #include <serial.h>
 #include <linux/stddef.h>
 #include <asm/byteorder.h>
+#include <rt_mmap.h>
+
 #if (CONFIG_COMMANDS & CFG_CMD_NET)
 #include <net.h>
 #endif
@@ -55,8 +57,9 @@
     !defined(CFG_ENV_IS_IN_FLASH)	&& \
     !defined(CFG_ENV_IS_IN_DATAFLASH)	&& \
     !defined(CFG_ENV_IS_IN_NAND)	&& \
+    !defined(CFG_ENV_IS_IN_SPI)	&& \
     !defined(CFG_ENV_IS_NOWHERE)
-# error Define one of CFG_ENV_IS_IN_{NVRAM|EEPROM|FLASH|DATAFLASH|NOWHERE}
+# error Define one of CFG_ENV_IS_IN_{NVRAM|EEPROM|FLASH|DATAFLASH|SPI|NOWHERE}
 #endif
 
 #define XMK_STR(x)	#x
@@ -90,7 +93,7 @@ static const unsigned long baudrate_table[] = CFG_BAUDRATE_TABLE;
 /************************************************************************
  * Command interface: print one or all environment variables
  */
-
+#ifdef RALINK_CMDLINE
 int do_printenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int i, j, k, nxt;
@@ -124,7 +127,7 @@ int do_printenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 			for (nxt=j; env_get_char(nxt) != '\0'; ++nxt)
 				;
-			k = envmatch((uchar *)name, j);
+			k = envmatch(name, j);
 			if (k < 0) {
 				continue;
 			}
@@ -142,6 +145,7 @@ int do_printenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	}
 	return rcode;
 }
+#endif // RALINK_CMDLINE //
 
 /************************************************************************
  * Set a new environment variable,
@@ -157,7 +161,7 @@ int _do_setenv (int flag, int argc, char *argv[])
 	int   i, len, oldval;
 	int   console = -1;
 	uchar *env, *nxt = NULL;
-	char *name;
+	uchar *name;
 	bd_t *bd = gd->bd;
 
 	uchar *env_data = env_get_addr(0);
@@ -174,7 +178,7 @@ int _do_setenv (int flag, int argc, char *argv[])
 	for (env=env_data; *env; env=nxt+1) {
 		for (nxt=env; *nxt; ++nxt)
 			;
-		if ((oldval = envmatch((uchar *)name, env-env_data)) >= 0)
+		if ((oldval = envmatch(name, env-env_data)) >= 0)
 			break;
 	}
 
@@ -191,7 +195,7 @@ int _do_setenv (int flag, int argc, char *argv[])
 		if ( (strcmp (name, "serial#") == 0) ||
 		    ((strcmp (name, "ethaddr") == 0)
 #if defined(CONFIG_OVERWRITE_ETHADDR_ONCE) && defined(CONFIG_ETHADDR)
-		     && (strcmp ((char *)env_get_addr(oldval),MK_STR(CONFIG_ETHADDR)) != 0)
+		     && (strcmp (env_get_addr(oldval),MK_STR(CONFIG_ETHADDR)) != 0)
 #endif	/* CONFIG_OVERWRITE_ETHADDR_ONCE && CONFIG_ETHADDR */
 		    ) ) {
 			printf ("Can't overwrite \"%s\"\n", name);
@@ -247,7 +251,12 @@ int _do_setenv (int flag, int argc, char *argv[])
 			gd->bd->bi_baudrate = baudrate;
 #endif
 
+#if defined(RT6855A_ASIC_BOARD) || defined(RT6855A_FPGA_BOARD)
+			bbu_uart_init();
+#else
 			serial_setbrg ();
+#endif
+
 			udelay(50000);
 			for (;;) {
 				if (getc() == '\r')
@@ -380,6 +389,43 @@ int _do_setenv (int flag, int argc, char *argv[])
 	}
 #endif	/* CONFIG_AMIGAONEG3SE */
 
+#if 0
+	if (strcmp(argv[1],"twe0") == 0) {
+		printf("\n Reset  to Flash environment  \n");
+	{
+
+		unsigned int regvalue,kk0;
+
+
+		kk0 = simple_strtoul(argv[2], NULL, 16);
+		
+		regvalue = *(volatile u_long *)(RALINK_SYSCTL_BASE + 0x0308);
+
+	printf("\n Default FLASH_CS1_CFG = %08X \n",regvalue);
+
+    regvalue &= ~(0x3 << 26);
+	regvalue |= (0x1 << 26);
+
+	regvalue |= (0x1 << 24);
+
+	regvalue &= ~(0x3 << 20);
+	regvalue |= (0x1 << 20);
+
+	regvalue &= ~(0x3 << 16);
+	regvalue |= (0x1 << 16);
+
+	regvalue &= ~(0xF << 12);
+	regvalue |= (kk0 << 12);
+
+
+	*(volatile u_long *)(RALINK_SYSCTL_BASE + 0x0308) = regvalue;
+
+	regvalue = *(volatile u_long *)(RALINK_SYSCTL_BASE + 0x0308);
+
+		}
+	}
+#endif
+
 	return 0;
 }
 
@@ -461,7 +507,7 @@ int do_askenv ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return 1;
 
 	/* prompt for input */
-	len = readline (message);
+	len = readline (message, 0);
 
 	if (size < len)
 		console_buffer[size] = '\0';
@@ -483,7 +529,7 @@ int do_askenv ( cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
  * or NULL if not found
  */
 
-char *getenv (char *name)
+char *getenv (uchar *name)
 {
 	int i, nxt;
 
@@ -497,15 +543,16 @@ char *getenv (char *name)
 				return (NULL);
 			}
 		}
-		if ((val=envmatch((uchar *)name, i)) < 0)
+		if ((val=envmatch(name, i)) < 0)
 			continue;
-		return ((char *)env_get_addr(val));
+		return (env_get_addr(val));
 	}
 
 	return (NULL);
 }
 
-int getenv_r (char *name, char *buf, unsigned len)
+#if 0
+int getenv_r (uchar *name, uchar *buf, unsigned len)
 {
 	int i, nxt;
 
@@ -517,7 +564,7 @@ int getenv_r (char *name, char *buf, unsigned len)
 				return (-1);
 			}
 		}
-		if ((val=envmatch((uchar *)name, i)) < 0)
+		if ((val=envmatch(name, i)) < 0)
 			continue;
 		/* found; copy out */
 		n = 0;
@@ -529,7 +576,9 @@ int getenv_r (char *name, char *buf, unsigned len)
 	}
 	return (-1);
 }
+#endif
 
+#ifdef RALINK_CMDLINE
 #if defined(CFG_ENV_IS_IN_NVRAM) || defined(CFG_ENV_IS_IN_EEPROM) || \
     ((CONFIG_COMMANDS & (CFG_CMD_ENV|CFG_CMD_FLASH)) == \
       (CFG_CMD_ENV|CFG_CMD_FLASH))
@@ -541,10 +590,8 @@ int do_saveenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	return (saveenv() ? 1 : 0);
 }
-
-
 #endif
-
+#endif // RALINK_CMDLINE //
 
 /************************************************************************
  * Match a name / name=value pair
@@ -553,7 +600,6 @@ int do_saveenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
  * i2 is the environment index for a 'name2=value2' pair.
  * If the names match, return the index for the value2, else NULL.
  */
-
 static int
 envmatch (uchar *s1, int i2)
 {
@@ -567,6 +613,7 @@ envmatch (uchar *s1, int i2)
 }
 
 
+#ifdef RALINK_CMDLINE
 /**************************************************/
 
 U_BOOT_CMD(
@@ -595,6 +642,7 @@ U_BOOT_CMD(
 	NULL
 );
 
+#endif
 #endif	/* CFG_CMD_ENV */
 
 #if (CONFIG_COMMANDS & CFG_CMD_ASKENV)

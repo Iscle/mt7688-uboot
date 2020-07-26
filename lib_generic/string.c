@@ -20,7 +20,28 @@
 #include <linux/ctype.h>
 #include <malloc.h>
 
-
+/* in order to save flash space, we declare below definition here.
+ * please modify it if you need below function */
+#ifndef CONFIG_MIPS16
+#define __HAVE_ARCH_STRNICMP
+#define __HAVE_ARCH_STRNICMP
+#define __HAVE_ARCH_STRCPY
+#define __HAVE_ARCH_STRNCPY
+#define __HAVE_ARCH_STRCAT
+#define __HAVE_ARCH_STRNCAT
+#define __HAVE_ARCH_STRCMP
+#define __HAVE_ARCH_STRNCMP
+#define __HAVE_ARCH_STRDUP
+#define __HAVE_ARCH_STRSPN
+#define __HAVE_ARCH_STRPBRK
+#define __HAVE_ARCH_STRTOK
+#define __HAVE_ARCH_STRSEP
+#define __HAVE_ARCH_STRSWAB
+#define __HAVE_ARCH_BCOPY
+#define __HAVE_ARCH_MEMSCAN
+#define __HAVE_ARCH_STRSTR
+#define __HAVE_ARCH_MEMCHR
+#endif
 #ifndef __HAVE_ARCH_STRNICMP
 /**
  * strnicmp - Case insensitive, length-limited string comparison
@@ -374,18 +395,17 @@ char * strsep(char **s, const char *ct)
  */
 char *strswab(const char *s)
 {
-	char *p, *q;
+	char *p;
 
 	if ((NULL == s) || ('\0' == *s)) {
 		return (NULL);
 	}
 
-	for (p=(char *)s, q=p+1; (*p != '\0') && (*q != '\0'); p+=2, q+=2) {
+	for (p = ((char *)s + 1); '\0' != *p; p += 2) {
 		char  tmp;
-
-		tmp = *p;
-		*p  = *q;
-		*q  = tmp;
+		tmp = *(p-1);
+		*(p-1) = *p;
+		*p = tmp;
 	}
 
 	return (char *) s;

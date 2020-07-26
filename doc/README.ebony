@@ -1,9 +1,9 @@
-			   AMCC Ebony Board
+			   IBM Ebony Board
 
 		    Last Update: September 12, 2002
 =======================================================================
 
-This file contains some handy info regarding U-Boot and the AMCC
+This file contains some handy info regarding U-Boot and the IBM
 Ebony evalutation board. See the README.ppc440 for additional
 information.
 

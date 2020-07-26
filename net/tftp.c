@@ -15,7 +15,7 @@
 #if (CONFIG_COMMANDS & CFG_CMD_NET)
 
 #define WELL_KNOWN_PORT	69		/* Well known TFTP port #		*/
-#define TIMEOUT		5		/* Seconds to timeout for a lost pkt	*/
+#define TIMEOUT		3		/* Seconds to timeout for a lost pkt	*/
 #ifndef	CONFIG_NET_RETRY_COUNT
 # define TIMEOUT_COUNT	10		/* # of timeouts before giving up  */
 #else
@@ -43,6 +43,7 @@ static ulong	TftpLastBlock;		/* last packet sequence number received */
 static ulong	TftpBlockWrap;		/* count of sequence number wraparounds */
 static ulong	TftpBlockWrapOffset;	/* memory offset due to wrapping	*/
 static int	TftpState;
+int		TftpStarted;		/* To know ARP reply requested by TFTP  */
 
 #define STATE_RRQ	1
 #define STATE_DATA	2
@@ -58,7 +59,7 @@ static char default_filename[DEFAULT_NAME_LEN];
 static char *tftp_filename;
 
 #ifdef CFG_DIRECT_FLASH_TFTP
-extern flash_info_t flash_info[];
+extern flash_info_t flash_info[CFG_MAX_FLASH_BANKS];
 #endif
 
 static __inline__ void
@@ -78,7 +79,7 @@ store_block (unsigned block, uchar * src, unsigned len)
 	}
 
 	if (rc) { /* Flash is destination for this packet */
-		rc = flash_write ((char *)src, (ulong)(load_addr+offset), len);
+		rc = flash_write ((uchar *)src, (ulong)(load_addr+offset), len);
 		if (rc) {
 			flash_perror (rc);
 			NetState = NETLOOP_FAIL;
@@ -95,19 +96,18 @@ store_block (unsigned block, uchar * src, unsigned len)
 		NetBootFileXferSize = newsize;
 }
 
-static void TftpSend (void);
+void TftpSend (void);
 static void TftpTimeout (void);
 
 /**********************************************************************/
 
-static void
+void
 TftpSend (void)
 {
 	volatile uchar *	pkt;
 	volatile uchar *	xp;
 	int			len = 0;
 	volatile ushort *s;
-
 	/*
 	 *	We will always be sending some sort of packet, so
 	 *	cobble together the packet headers now.
@@ -128,6 +128,7 @@ TftpSend (void)
 		strcpy ((char *)pkt, "timeout");
 		pkt += 7 /*strlen("timeout")*/ + 1;
 		sprintf((char *)pkt, "%d", TIMEOUT);
+
 #ifdef ET_DEBUG
 		printf("send option \"timeout %s\"\n", (char *)pkt);
 #endif
@@ -142,6 +143,9 @@ TftpSend (void)
 		*s++ = htons(TFTP_ACK);
 		*s++ = htons(TftpBlock);
 		pkt = (uchar *)s;
+		//printf("\n [%d]",ttc++);
+		//printf("\n w:htons(TftpBlock)=0x%04X,r:%04X\n",htons(TftpBlock),*(((ushort *)xp)+1));
+		
 		len = pkt - xp;
 		break;
 
@@ -193,15 +197,13 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 	s = (ushort *)pkt;
 	proto = *s++;
 	pkt = (uchar *)s;
+
 	switch (ntohs(proto)) {
 
 	case TFTP_RRQ:
 	case TFTP_WRQ:
 	case TFTP_ACK:
 		break;
-	default:
-		break;
-
 	case TFTP_OACK:
 #ifdef ET_DEBUG
 		printf("Got OACK: %s %s\n", pkt, pkt+strlen(pkt)+1);
@@ -216,6 +218,8 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 		len -= 2;
 		TftpBlock = ntohs(*(ushort *)pkt);
 
+		//printf("\n TftpBlock=[%08X],(TftpBlock - 1) % 10) = %d",TftpBlock,((TftpBlock - 1) % 10));
+
 		/*
 		 * RFC1350 specifies that the first data packet will
 		 * have sequence number 1. If we receive a sequence
@@ -228,7 +232,7 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 			printf ("\n\t %lu MB reveived\n\t ", TftpBlockWrapOffset>>20);
 		} else {
 			if (((TftpBlock - 1) % 10) == 0) {
-				putc ('#');
+				puts ("#");
 			} else if ((TftpBlock % (10 * HASHES_PER_LINE)) == 0) {
 				puts ("\n\t ");
 			}
@@ -247,7 +251,7 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 			TftpLastBlock = 0;
 			TftpBlockWrap = 0;
 			TftpBlockWrapOffset = 0;
-
+			//printf("\n first block received  \n");
 			if (TftpBlock != 1) {	/* Assertion */
 				printf ("\nTFTP error: "
 					"First block is not block 1 (%ld)\n"
@@ -262,6 +266,7 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 			/*
 			 *	Same block again; ignore it.
 			 */
+			printf("\n Same block again; ignore it \n"); 
 			break;
 		}
 
@@ -292,6 +297,9 @@ TftpHandler (uchar * pkt, unsigned dest, unsigned src, unsigned len)
 		puts ("Starting again\n\n");
 		NetStartAgain ();
 		break;
+	default:
+		return;
+
 	}
 }
 
@@ -313,17 +321,11 @@ TftpTimeout (void)
 void
 TftpStart (void)
 {
-#ifdef CONFIG_TFTP_PORT
-	char *ep;             /* Environment pointer */
-#endif
+	TftpStarted=1;
 
 	if (BootFile[0] == '\0') {
-		sprintf(default_filename, "%02lX%02lX%02lX%02lX.img",
-			NetOurIP & 0xFF,
-			(NetOurIP >>  8) & 0xFF,
-			(NetOurIP >> 16) & 0xFF,
-			(NetOurIP >> 24) & 0xFF	);
-		tftp_filename = default_filename;
+	    sprintf(default_filename, "%s","test.bin");
+	    tftp_filename = default_filename;
 
 		printf ("*** Warning: no boot file name; using '%s'\n",
 			tftp_filename);
@@ -358,7 +360,7 @@ TftpStart (void)
 
 	putc ('\n');
 
-	printf ("Load address: 0x%lx\n", load_addr);
+	printf ("\n TIMEOUT_COUNT=%d,Load address: 0x%lx\n",TIMEOUT_COUNT,load_addr);
 
 	puts ("Loading: *\b");
 
@@ -368,21 +370,13 @@ TftpStart (void)
 	TftpServerPort = WELL_KNOWN_PORT;
 	TftpTimeoutCount = 0;
 	TftpState = STATE_RRQ;
-	/* Use a pseudo-random port unless a specific port is set */
 	TftpOurPort = 1024 + (get_timer(0) % 3072);
-#ifdef CONFIG_TFTP_PORT
-	if ((ep = getenv("tftpdstp")) != NULL) {
-		TftpServerPort = simple_strtol(ep, NULL, 10);
-	}
-	if ((ep = getenv("tftpsrcp")) != NULL) {
-		TftpOurPort= simple_strtol(ep, NULL, 10);
-	}
-#endif
 	TftpBlock = 0;
 
 	/* zero out server ether in case the server ip has changed */
 	memset(NetServerEther, 0, 6);
-
+	
+   
 	TftpSend ();
 }
 

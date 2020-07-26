@@ -26,9 +26,14 @@
 #include <common.h>
 #include <flash.h>
 
+ulong rt2880_flash_start_t;
+
+
 #if !defined(CFG_NO_FLASH)
 
-extern flash_info_t  flash_info[]; /* info for FLASH chips */
+extern flash_info_t  flash_info[CFG_MAX_FLASH_BANKS]; /* info for FLASH chips */
+
+
 
 /*-----------------------------------------------------------------------
  * Functions
@@ -88,7 +93,7 @@ flash_protect (int flag, ulong from, ulong to, flash_info_t *info)
 #else
 				info->protect[i] = 1;
 #endif	/* CFG_FLASH_PROTECTION */
-				debug ("protect on %d\n", i);
+//				debug ("protect on %d\n", i);
 			}
 		}
 	}
@@ -135,7 +140,7 @@ addr2info (ulong addr)
  *			(only some targets require alignment)
  */
 int
-flash_write (char *src, ulong addr, ulong cnt)
+flash_write (uchar *src, ulong addr, ulong cnt)
 {
 #ifdef CONFIG_SPD823TS
 	return (ERR_TIMOUT);	/* any other error codes are possible as well */
@@ -145,6 +150,8 @@ flash_write (char *src, ulong addr, ulong cnt)
 	flash_info_t *info_first = addr2info (addr);
 	flash_info_t *info_last  = addr2info (end );
 	flash_info_t *info;
+
+	
 
 	if (cnt == 0) {
 		return (ERR_OK);
@@ -166,15 +173,17 @@ flash_write (char *src, ulong addr, ulong cnt)
 			}
 		}
 	}
-
+	rt2880_flash_start_t = get_timer(0);
 	/* finally write data to flash */
 	for (info = info_first; info <= info_last && cnt>0; ++info) {
 		ulong len;
 
 		len = info->start[0] + info->size - addr;
+
+		
 		if (len > cnt)
 			len = cnt;
-		if ((i = write_buff(info, (uchar *)src, addr, len)) != 0) {
+		if ((i = write_buff(info, src, addr, len)) != 0) {
 			return (i);
 		}
 		cnt  -= len;
